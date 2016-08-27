@@ -3,6 +3,16 @@ var fetch = require('node-fetch');
 var url = require('url');
 var Promise = require('lie');
 
+// ASHA settings
+const database = 'asha-fusion-dev';
+const roles = ['staff'];
+const validator = function(newDoc, oldDoc, userCtx) {
+  var role = "staff";
+  if (userCtx.roles.indexOf("_admin") === -1 && userCtx.roles.indexOf(role) === -1) {
+    throw({forbidden : "Only users with role " + role + " or an admin can modify this database."});
+  }
+};
+
 var requests = [
   {
     path: '/_config/httpd/enable_cors',
@@ -23,6 +33,24 @@ var requests = [
   {
     path: '/_config/cors/headers',
     value: '"accept, authorization, content-type, origin, referer, x-csrf-token"'
+  },
+  {
+    path: '/_config/httpd/require_valid_user',
+    value: '"true"'
+  },
+  {
+    path: '/' + database + '/_security',
+    value: JSON.stringify({
+      'members': {
+        'roles': roles
+      }
+    })
+  },
+  {
+    path: '/' + database + '/_design/only_staffs',
+    value: JSON.stringify({
+      validate_doc_update: validator.toString()
+    })
   }
 ];
 
